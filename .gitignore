@@ -1,3 +1,10 @@
+# Build directory
+build/
+./build/classes/abc/*
+
+# nbproject private
+nbproject/private
+
 # Compiled class file
 *.class
 
