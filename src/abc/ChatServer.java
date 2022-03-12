@@ -44,13 +44,12 @@ public class ChatServer {
   //-------------------------------------------------------------------------//
   //  start_Network_Server()                                                 //
   //-------------------------------------------------------------------------//
-  private void start_Network_Server( String  sPortNo ) {
+  private void start_Network_Server( String  sPortNo ) throws Exception {
     
     int iPortNo = Server_PortNo_Util.getServerPortNo( sPortNo );
     
     var netSvr = new NetworkServer();
     netSvr.start( iPortNo );
-    
     
   } //start_Network_Server()
   

@@ -20,7 +20,7 @@ public class NetworkServer {
       System.out.println("New incoming socket connection accepted.");
       
       ServerThread thread = new ServerThread( sock );
-      thread.run();
+      thread.start();
       
       System.out.println("New thread created.");
     } //while
