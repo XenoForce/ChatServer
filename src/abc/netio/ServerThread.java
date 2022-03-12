@@ -35,7 +35,12 @@ public class ServerThread extends Thread {
       if (obj instanceof String) {
         String str = (String) obj;
         
-        if (ConnectionTypes)
+        if (ConnectionTypes.PASSIVE_CLIENT.equals( str )) {
+          
+        }
+        else if (ConnectionTypes.ACTIVE_CLIENT.equals( str )) {
+          
+        } //if
         
       } //if
     }
