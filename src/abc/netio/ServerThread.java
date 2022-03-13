@@ -1,6 +1,7 @@
 package abc.netio;
 
 import abc.bos.*;
+import abc.dbio.OuterDbMgr;
 import abc.json.*;
 
 import java.io.*;
@@ -88,26 +89,38 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   private void process_Incoming_Messages( String  chatUser,
                                           Socket  socket ) {
-    try {
-      InputStream        inS = socket.getInputStream();
-      ObjectInputStream  ois = new ObjectInputStream( inS );
-      Object             obj = ois.readObject();
-      
-      if (obj instanceof String) {
-        String       str = (String) obj;
-        ChatMessage  msg = JsonMessageUtil.jsonToMsg( str );
+    while (true) {
+      try {
+        InputStream        inS = socket.getInputStream();
+        ObjectInputStream  ois = new ObjectInputStream( inS );
+        Object             obj = ois.readObject();
         
-        if (null != msg) {
-          System.out.println("New message received.");
+        if (obj instanceof String) {
+          String       str = (String) obj;
+          ChatMessage  msg = JsonMessageUtil.jsonToMsg( str );
           
-          send_Ack_Response( sock );
-          
+          if (null != msg) {
+            System.out.println("New chat message received.");
+            
+            msg = OuterDbMgr.storeMessage( msg );
+            
+            System.out.println("New chat message saved in db.");
+            
+            String json = JsonMessageUtil.msgToJson( msg );
+            
+            //- - - - - - -
+            
+            OutputStream        outS = socket.getOutputStream();
+            ObjectOutputStream  oos  = new ObjectOutputStream( outS );
+            
+            oos.writeObject( json );
+          } //if
         } //if
-      } //if
-    }
-    catch (Exception ex) {
-      ex.printStackTrace( System.err );
-    } //try
+      }
+      catch (Exception ex) {
+        ex.printStackTrace( System.err );
+      } //try
+    } //while
     
   } //process_Incoming_Messages()
   
