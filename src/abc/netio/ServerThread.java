@@ -1,6 +1,7 @@
 package abc.netio;
 
-import abc.json.JsonConnTypeUtil;
+import abc.json.*;
+
 import java.io.*;
 import java.net.*;
 
@@ -34,25 +35,66 @@ public class ServerThread extends Thread {
       Object             obj = ois.readObject();
       
       if (obj instanceof String) {
-        String           str     = (String) obj;
-        ConnTypeRequest  req     = JsonConnTypeUtil.jsonToRequest( str );
-        String           theType = req.connectionType;
+        String           str      = (String) obj;
+        ConnTypeRequest  req      = JsonConnTypeUtil.jsonToRequest( str );
+        String           chatUser = req.chatUser;
+        String           theType  = req.connectionType;
         
         if (null != theType) {
           if (ConnectionTypes.PASSIVE_CLIENT.equals( theType )) {
-            
+            PassiveSet.add( chatUser, sock );
+            send_Ack_Response( sock );
+            //(We now exit this thread.)
           }
           else if (ConnectionTypes.ACTIVE_CLIENT.equals( theType )) {
-            
+            send_Ack_Response( sock );
+            process_Incoming_Messages( chatUser, sock );
           } //if
         } //if
       } //if
     }
     catch (Exception ex) {
-      
+      ex.printStackTrace( System.err );
     } //try
     
   } //run()
+  
+  
+  //-------------------------------------------------------------------------//
+  //  send_Ack_Response()                                                    //
+  //-------------------------------------------------------------------------//
+  private void send_Ack_Response( Socket  socket ) {
+    
+    ConnTypeResponse resp = new ConnTypeResponse();
+      resp.theResponse    = ResponseCodes.OK;
+    
+    try {
+      OutputStream        outS = socket.getOutputStream();
+      ObjectOutputStream  oos  = new ObjectOutputStream( outS );
+      String              json = JsonConnTypeUtil.responseToJson( resp );
+      
+      oos.writeObject( json );
+    }
+    catch (Exception ex) {
+      ex.printStackTrace( System.err );
+    } //try
+    
+  } //send_Ack_Response()
+  
+  
+  //-------------------------------------------------------------------------//
+  //  process_Incoming_Messages()                                            //
+  //-------------------------------------------------------------------------//
+  private void process_Incoming_Messages( String  chatUser,
+                                          Socket  socket ) {
+    try {
+      
+    }
+    catch (Exception ex) {
+      ex.printStackTrace( System.err );
+    } //try
+    
+  } //process_Incoming_Messages()
   
   
 } //class
