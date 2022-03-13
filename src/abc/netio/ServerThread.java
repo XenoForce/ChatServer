@@ -1,5 +1,6 @@
 package abc.netio;
 
+import abc.bos.*;
 import abc.json.*;
 
 import java.io.*;
@@ -88,7 +89,21 @@ public class ServerThread extends Thread {
   private void process_Incoming_Messages( String  chatUser,
                                           Socket  socket ) {
     try {
+      InputStream        inS = socket.getInputStream();
+      ObjectInputStream  ois = new ObjectInputStream( inS );
+      Object             obj = ois.readObject();
       
+      if (obj instanceof String) {
+        String       str = (String) obj;
+        ChatMessage  msg = JsonMessageUtil.jsonToMsg( str );
+        
+        if (null != msg) {
+          System.out.println("New message received.");
+          
+          send_Ack_Response( sock );
+          
+        } //if
+      } //if
     }
     catch (Exception ex) {
       ex.printStackTrace( System.err );
