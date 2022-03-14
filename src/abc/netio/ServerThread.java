@@ -102,9 +102,17 @@ public class ServerThread extends Thread {
           if (null != msg) {
             System.out.println("New chat message received.");
             
-            msg = OuterDbMgr.storeMessage( msg );
+            //- - - - - - -
+            
+            msg = OuterDbMgr.storeMessage( msg );    //Also assigns the "timeStamp" value.
             
             System.out.println("New chat message saved in db.");
+            
+            //- - - - - - -
+            
+            PostMan.deliverMessageToInterestedParties( msg );
+            
+            //- - - - - - -
             
             String json = JsonMessageUtil.msgToJson( msg );
             
