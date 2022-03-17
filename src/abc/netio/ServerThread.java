@@ -125,6 +125,9 @@ public class ServerThread extends Thread {
           } //if
         } //if
       }
+      catch (java.io.EOFException ex) {
+        break;    //Exit the while loop, and also exit this thread.
+      }
       catch (Exception ex) {
         ex.printStackTrace( System.err );
       } //try
