@@ -1,7 +1,7 @@
 package abc.netio;
 
 import abc.bos.*;
-import abc.dbio.OuterDbMgr;
+import abc.dbio.*;
 import abc.json.*;
 
 import java.io.*;
@@ -36,23 +36,20 @@ public class ServerThread extends Thread {
       ObjectInputStream  ois = new ObjectInputStream( inS );
       Object             obj = ois.readObject();
       
-      if (obj instanceof String) {
-        String           str      = (String) obj;
-        ConnTypeRequest  req      = JsonConnTypeUtil.jsonToRequest( str );
-        String           chatUser = req.chatUser;
-        String           theType  = req.connectionType;
-        
-        if (null != theType) {
-          if (ConnectionTypes.PASSIVE_CLIENT.equals( theType )) {
-            PassiveSet.add( chatUser, sock );
-            send_Ack_Response( sock );
-            //(We now exit this thread.)
-          }
-          else if (ConnectionTypes.ACTIVE_CLIENT.equals( theType )) {
-            send_Ack_Response( sock );
-            process_Incoming_Messages( chatUser, sock );
-          } //if
-        } //if
+      String             str = (String) obj;
+      ConnTypeRequest    req = JsonConnTypeUtil.jsonToRequest( str );
+      
+      String  chatUser = req.chatUser;
+      String  theType  = req.connectionType;
+      
+      if (ConnectionTypes.PASSIVE_CLIENT.equals( theType )) {
+        PassiveSet.add( chatUser, sock );
+        send_Ack_Response( sock );
+        //(We now exit this thread, for this type of connection.)
+      }
+      else if (ConnectionTypes.ACTIVE_CLIENT.equals( theType )) {
+        send_Ack_Response( sock );
+        process_Incoming_Requests( chatUser, sock );
       } //if
     }
     catch (Exception ex) {
@@ -71,9 +68,10 @@ public class ServerThread extends Thread {
       resp.theResponse    = ResponseCodes.OK;
     
     try {
+      String json = JsonConnTypeUtil.responseToJson( resp );
+      
       OutputStream        outS = socket.getOutputStream();
       ObjectOutputStream  oos  = new ObjectOutputStream( outS );
-      String              json = JsonConnTypeUtil.responseToJson( resp );
       
       oos.writeObject( json );
     }
@@ -85,9 +83,9 @@ public class ServerThread extends Thread {
   
   
   //-------------------------------------------------------------------------//
-  //  process_Incoming_Messages()                                            //
+  //  process_Incoming_Requests()                                            //
   //-------------------------------------------------------------------------//
-  private void process_Incoming_Messages( String  chatUser,
+  private void process_Incoming_Requests( String  chatUser,
                                           Socket  socket ) {
     while (true) {
       try {
@@ -95,34 +93,16 @@ public class ServerThread extends Thread {
         ObjectInputStream  ois = new ObjectInputStream( inS );
         Object             obj = ois.readObject();
         
-        if (obj instanceof String) {
-          String       str = (String) obj;
-          ChatMessage  msg = JsonMessageUtil.jsonToMsg( str );
-          
-          if (null != msg) {
-            System.out.println("New chat message received.");
-            
-            //- - - - - - -
-            
-            msg = OuterDbMgr.storeMessage( msg );    //Also assigns the "timeStamp" value.
-            
-            System.out.println("New chat message saved in db.");
-            
-            //- - - - - - -
-            
-            PostMan.deliverMessageToInterestedParties( msg );
-            
-            //- - - - - - -
-            
-            String json = JsonMessageUtil.msgToJson( msg );
-            
-            //- - - - - - -
-            
-            OutputStream        outS = socket.getOutputStream();
-            ObjectOutputStream  oos  = new ObjectOutputStream( outS );
-            
-            oos.writeObject( json );
-          } //if
+        String sRequestType = (String) obj;
+        
+        if (RequestTypes.GET_MSGS_SINCE_CUTOFF.equals( sRequestType )) {
+          doWork_Get_Msgs_Since_Cutoff( chatUser, socket );
+        }
+        else if (RequestTypes.PROCESS_ONE_NEW_MSG.equals( sRequestType )) {
+          doWork_Process_One_New_Msg( chatUser, socket );
+        }
+        else if (RequestTypes.UPDATE_SHOWN_STATUS.equals( sRequestType )) {
+          doWork_Update_Shown_Status( chatUser, socket );
         } //if
       }
       catch (java.io.EOFException ex) {
@@ -133,7 +113,61 @@ public class ServerThread extends Thread {
       } //try
     } //while
     
-  } //process_Incoming_Messages()
+  } //process_Incoming_Requests()
+  
+  
+  //-------------------------------------------------------------------------//
+  //  doWork_Get_Msgs_Since_Cutoff()                                         //
+  //-------------------------------------------------------------------------//
+  private void doWork_Get_Msgs_Since_Cutoff( String  chatUser,
+                                             Socket  socket ) throws Exception {
+    
+  } //(m)
+  
+  
+  //-------------------------------------------------------------------------//
+  //  doWork_Process_One_New_Msg()                                           //
+  //-------------------------------------------------------------------------//
+  private void doWork_Process_One_New_Msg( String  chatUser,
+                                           Socket  socket ) throws Exception {
+    
+    InputStream        inS = socket.getInputStream();
+    ObjectInputStream  ois = new ObjectInputStream( inS );
+    Object             obj = ois.readObject();
+    
+    String       str = (String) obj;
+    ChatMessage  msg = JsonMessageUtil.jsonToMsg( str );
+    
+    System.out.println("Server received new chat message.");
+    
+    //- - Store msg in server db - -:
+    
+    msg = OuterDbMgr.storeMessage( msg );    //Also assigns the "timeStamp" value.
+    
+    System.out.println("New chat message saved in server db.");
+    
+    //- - Deliver message to recipients - -:
+    
+    PostMan.deliverMessageToInterestedParties( msg );
+    
+    //- - Send msg (with timestamp) back to the original client - -:
+    
+    String json = JsonMessageUtil.msgToJson( msg );
+    
+    OutputStream        outS = socket.getOutputStream();
+    ObjectOutputStream  oos  = new ObjectOutputStream( outS );
+    
+    oos.writeObject( json );
+  } //(m)
+  
+  
+  //-------------------------------------------------------------------------//
+  //  doWork_Update_Shown_Status()                                           //
+  //-------------------------------------------------------------------------//
+  private void doWork_Update_Shown_Status( String  chatUser,
+                                           Socket  socket ) throws Exception {
+    
+  } //(m)
   
   
 } //class
