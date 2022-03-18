@@ -13,7 +13,8 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   //  Attributes                                                             //
   //-------------------------------------------------------------------------//
-  private Socket  sock ;
+  private String  chatUser ;
+  private Socket  sock     ;
   
   
   //-------------------------------------------------------------------------//
@@ -34,22 +35,27 @@ public class ServerThread extends Thread {
     try {
       InputStream        inS = sock.getInputStream();
       ObjectInputStream  ois = new ObjectInputStream( inS );
-      Object             obj = ois.readObject();
       
-      String             str = (String) obj;
-      ConnTypeRequest    req = JsonConnTypeUtil.jsonToRequest( str );
+      Object  obj = ois.readObject();
+      String  str = (String) obj;
       
-      String  chatUser = req.chatUser;
-      String  theType  = req.connectionType;
+      ConnTypeRequest  req = JsonConnTypeUtil.jsonToRequest( str );
       
-      if (ConnectionTypes.PASSIVE_CLIENT.equals( theType )) {
-        PassiveSet.add( chatUser, sock );
-        send_Ack_Response( sock );
+      chatUser = req.chatUser;
+      
+      String  conType = req.connectionType;
+      
+      OutputStream        outS = sock.getOutputStream();
+      ObjectOutputStream  oos  = new ObjectOutputStream( outS );
+      
+      if (ConnectionTypes.PASSIVE_CLIENT.equals( conType )) {
+        PassiveLookup.add( chatUser, sock, oos );
+        send_Ack_Response( oos );
         //(We now exit this thread, for this type of connection.)
       }
-      else if (ConnectionTypes.ACTIVE_CLIENT.equals( theType )) {
-        send_Ack_Response( sock );
-        process_Incoming_Requests( chatUser, sock );
+      else if (ConnectionTypes.ACTIVE_CLIENT.equals( conType )) {
+        send_Ack_Response( oos );
+        process_Incoming_Requests();
       } //if
     }
     catch (Exception ex) {
@@ -62,17 +68,13 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   //  send_Ack_Response()                                                    //
   //-------------------------------------------------------------------------//
-  private void send_Ack_Response( Socket  socket ) {
+  private void send_Ack_Response( ObjectOutputStream  oos ) {
     
-    ConnTypeResponse resp = new ConnTypeResponse();
-      resp.theResponse    = ResponseCodes.OK;
+    ConnTypeResponse  resp = new ConnTypeResponse();
+      resp.theResponse = ResponseCodes.OK;
     
     try {
-      String json = JsonConnTypeUtil.responseToJson( resp );
-      
-      OutputStream        outS = socket.getOutputStream();
-      ObjectOutputStream  oos  = new ObjectOutputStream( outS );
-      
+      String  json = JsonConnTypeUtil.responseToJson( resp );
       oos.writeObject( json );
     }
     catch (Exception ex) {
@@ -85,24 +87,26 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   //  process_Incoming_Requests()                                            //
   //-------------------------------------------------------------------------//
-  private void process_Incoming_Requests( String  chatUser,
-                                          Socket  socket ) {
+  private void process_Incoming_Requests() {
+    
     while (true) {
       try {
-        InputStream        inS = socket.getInputStream();
+        InputStream        inS = sock.getInputStream();
         ObjectInputStream  ois = new ObjectInputStream( inS );
-        Object             obj = ois.readObject();
         
-        String sRequestType = (String) obj;
+        Object  requestType  = ois.readObject();
+        Object  theRequest   = ois.readObject();
+        
+        String  sRequestType = (String) requestType;
         
         if (RequestTypes.GET_MSGS_SINCE_CUTOFF.equals( sRequestType )) {
-          doWork_Get_Msgs_Since_Cutoff( chatUser, socket );
+          doWork_Get_Msgs_Since_Cutoff( theRequest );
         }
         else if (RequestTypes.PROCESS_ONE_NEW_MSG.equals( sRequestType )) {
-          doWork_Process_One_New_Msg( chatUser, socket );
+          doWork_Process_One_New_Msg( theRequest );
         }
         else if (RequestTypes.UPDATE_SHOWN_STATUS.equals( sRequestType )) {
-          doWork_Update_Shown_Status( chatUser, socket );
+          doWork_Update_Shown_Status( theRequest );
         } //if
       }
       catch (java.io.EOFException ex) {
@@ -119,8 +123,7 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   //  doWork_Get_Msgs_Since_Cutoff()                                         //
   //-------------------------------------------------------------------------//
-  private void doWork_Get_Msgs_Since_Cutoff( String  chatUser,
-                                             Socket  socket ) throws Exception {
+  private void doWork_Get_Msgs_Since_Cutoff( Object  requestObj ) throws Exception {
     
   } //(m)
   
@@ -128,14 +131,9 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   //  doWork_Process_One_New_Msg()                                           //
   //-------------------------------------------------------------------------//
-  private void doWork_Process_One_New_Msg( String  chatUser,
-                                           Socket  socket ) throws Exception {
+  private void doWork_Process_One_New_Msg( Object  requestObj ) throws Exception {
     
-    InputStream        inS = socket.getInputStream();
-    ObjectInputStream  ois = new ObjectInputStream( inS );
-    Object             obj = ois.readObject();
-    
-    String       str = (String) obj;
+    String       str = (String) requestObj;
     ChatMessage  msg = JsonMessageUtil.jsonToMsg( str );
     
     System.out.println("Server received new chat message.");
@@ -154,7 +152,7 @@ public class ServerThread extends Thread {
     
     String json = JsonMessageUtil.msgToJson( msg );
     
-    OutputStream        outS = socket.getOutputStream();
+    OutputStream        outS = sock.getOutputStream();
     ObjectOutputStream  oos  = new ObjectOutputStream( outS );
     
     oos.writeObject( json );
@@ -164,8 +162,7 @@ public class ServerThread extends Thread {
   //-------------------------------------------------------------------------//
   //  doWork_Update_Shown_Status()                                           //
   //-------------------------------------------------------------------------//
-  private void doWork_Update_Shown_Status( String  chatUser,
-                                           Socket  socket ) throws Exception {
+  private void doWork_Update_Shown_Status( Object  requestObj ) throws Exception {
     
   } //(m)
   

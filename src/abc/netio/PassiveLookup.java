@@ -1,73 +1,80 @@
 package abc.netio;
 
+import java.io.*;
 import java.net.*;
 import java.util.*;
 
 
-public class PassiveSet {
+public class PassiveLookup {
   
   //-------------------------------------------------------------------------//
   //  Attributes                                                             //
   //-------------------------------------------------------------------------//
-  private static final Map<String, List<Socket>>  dataStruct = new Hashtable<>();
+  private static final Map<String, List<PassiveObj>>  dataStruct = new HashMap<>();
   
   
   //-------------------------------------------------------------------------//
   //  add()                                                                  //
   //-------------------------------------------------------------------------//
   public static void add( String  chatUser,
-                          Socket  sock ) {
+                          Socket  sock,
+                          ObjectOutputStream  oos ) {
+    
+    PassiveObj pObj = new PassiveObj();
+      pObj.chatUser = chatUser;
+      pObj.socket   = sock;
+      pObj.oos      = oos;
     
     synchronized( dataStruct ) {
-      List<Socket> list = dataStruct.get( chatUser );
+      List<PassiveObj> list = dataStruct.get( chatUser );
       
       if (null == list) {
         list = new ArrayList<>();
         dataStruct.put( chatUser, list );
       } //if
       
-      list.add( sock );
-    } //synchronized()
+      list.add( pObj );
+    } //sync
     
-  } //add()
+  } //(m)
   
   
   //-------------------------------------------------------------------------//
-  //  removeSocket()                                                         //
+  //  remove()                                                               //
   //-------------------------------------------------------------------------//
-  public static void removeSocket( String  chatUser,
-                                   Socket  sock ) {
+  public static void remove( String      chatUser,
+                             PassiveObj  pObj ) {
     
     synchronized( dataStruct ) {
-      List<Socket> list = dataStruct.get( chatUser );
+      List<PassiveObj> list = dataStruct.get( chatUser );
       
       if (null != list) {
-        if (list.contains( sock )) {
-          list.remove( sock );
+        if (list.contains( pObj )) {
+          list.remove( pObj );
         } //if
       } //if
-    } //synchronized()
+    } //sync
     
-  } //removeSocket()
+  } //(m)
   
   
   //-------------------------------------------------------------------------//
-  //  getSockets_for_Recipient()                                             //
+  //  getAll_for_Recipient()                                                 //
   //-------------------------------------------------------------------------//
-  public static List<Socket> getSockets_for_Recipient( String  chatUser ) {
+  public static List<PassiveObj> getAll_for_Recipient( String  chatUser ) {
     
-    List<Socket> retVal = new ArrayList<>();
+    List<PassiveObj> retVal = new ArrayList<>();
     
     synchronized( dataStruct ) {
-      List<Socket> list = dataStruct.get( chatUser );
+      List<PassiveObj> list = dataStruct.get( chatUser );
       
       if (null != list) {
         list.forEach( x -> retVal.add( x ));
       } //if
-    } //synchronized()
+    } //sync
     
     return retVal;
-  } //getSockets_for_Recipient()
+  } //(m)
   
   
 } //class

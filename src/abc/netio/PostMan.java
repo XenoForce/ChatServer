@@ -17,43 +17,43 @@ public class PostMan {
     
     String chatUser = msg.destination;
     
-    List<Socket> list = PassiveSet.getSockets_for_Recipient( chatUser );
+    List<PassiveObj> list = PassiveLookup.getAll_for_Recipient( chatUser );
     
-    for (Socket sock : list) {
-      if (sock.isClosed() || sock.isInputShutdown() || sock.isOutputShutdown()) {
-        PassiveSet.removeSocket( chatUser, sock );
+    for (PassiveObj pObj : list) {
+      Socket              sock = pObj.socket;
+      ObjectOutputStream  oos  = pObj.oos;
+      
+      if (sock.isClosed()
+      ||  sock.isInputShutdown()
+      ||  sock.isOutputShutdown() ) {
+        PassiveLookup.remove( chatUser, pObj );
         continue;
       } //if
       
       try {
-        sendChatMessage( msg, sock );
+        sendChatMessage( msg, oos );
       }
       catch (Exception ex) {
-        PassiveSet.removeSocket( chatUser, sock );
+        PassiveLookup.remove( chatUser, pObj );
       } //try
     } //for
     
-  } //deliverMessageToInterestedParties()
+  } //(m)
   
   
   //-------------------------------------------------------------------------//
   //  sendChatMessage()                                                      //
   //-------------------------------------------------------------------------//
-  public static void sendChatMessage( ChatMessage  msg ,
-                                      Socket       sock ) throws Exception {
+  public static void sendChatMessage( ChatMessage         msg ,
+                                      ObjectOutputStream  oos ) throws Exception {
     
     String json = JsonMessageUtil.msgToJson( msg );
-    
-    //- - - - - - -
-    
-    OutputStream        outS = sock.getOutputStream();
-    ObjectOutputStream  oos  = new ObjectOutputStream( outS );
     
     oos.writeObject( json );
     
     System.out.println("PostMan sent a chat message to a client program.");
     
-  } //sendChatMessage()
+  } //(m)
   
   
 } //class
