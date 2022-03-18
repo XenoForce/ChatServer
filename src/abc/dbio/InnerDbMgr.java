@@ -1,7 +1,9 @@
 package abc.dbio;
 
 import abc.bos.*;
+
 import java.sql.*;
+import java.util.*;
 
 
 public class InnerDbMgr {
@@ -38,7 +40,33 @@ public class InnerDbMgr {
     CommonDbMgr.storeMessage( msg, dbCon );
     
     return msg;
-  } //storeMessage()
+  } //(m)
+  
+  
+  //-------------------------------------------------------------------------//
+  //  getAllMessages_for_User_since_Timestamp()                              //
+  //-------------------------------------------------------------------------//
+  public List<ChatMessage> getAllMessages_for_User_since_Timestamp( String          chatUser ,
+                                                                    java.util.Date  dtCutOff )
+                                                             throws Exception {
+    
+    List<ChatMessage> retVal = ServerDbMgr.getAllMessages_for_User_since_Timestamp( chatUser ,
+                                                                                    dtCutOff ,
+                                                                                    dbCon );
+    return retVal;
+  } //(m)
+  
+  
+  //-------------------------------------------------------------------------//
+  //  update_Shown_Status()                                                  //
+  //-------------------------------------------------------------------------//
+  public void update_Shown_Status( List<String>  arrId ) throws Exception {
+    
+    for (String id : arrId) {
+      ServerDbMgr.update_Shown_Status( id, dbCon );
+    } //for
+    
+  } //(m)
   
   
 } //class

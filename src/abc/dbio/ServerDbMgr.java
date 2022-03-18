@@ -19,7 +19,8 @@ public class ServerDbMgr {
     
     List<ChatMessage> arrMsg = new ArrayList<>();
     
-    String sFilter = "('" + chatUser + "','" + dtCutOff + "')";
+    String sUser   = "'" + chatUser + "'";
+    String sCutOff = DbDateUtil.formatTimeStamp( dtCutOff );
     
     String sql = "select "
                + " TimeStamp, "
@@ -29,8 +30,8 @@ public class ServerDbMgr {
                + " Body, "
                + " Shown "
                + " from   ChatMessage "
-               + " where  Sender      in " + sFilter
-               + " and    Destination in " + sFilter
+               + " where  (Sender = " + sUser + " or Destination = " + sUser + ")"
+               + " and    TimeStamp >= " + sCutOff
                + " order  by TimeStamp ";
     
     Statement stmt = con.createStatement();
@@ -53,7 +54,26 @@ public class ServerDbMgr {
     stmt.close();
     
     return arrMsg;
-  } //getAllMessages_for_User_since_Timestamp()
+  } //(m)
+  
+  
+  //-------------------------------------------------------------------------//
+  //  update_Shown_Status()                                                  //
+  //-------------------------------------------------------------------------//
+  public static void update_Shown_Status( String      id ,
+                                          Connection  con ) throws Exception {
+    
+    String sId = "'" + id + "'";
+    
+    String sql = "update ChatMessage "
+               + " set   Shown = true "
+               + " where Id = " + sId;
+    
+    Statement stmt = con.createStatement();
+    stmt.executeUpdate( sql );
+    
+    stmt.close();
+  } //(m)
   
   
 } //class
